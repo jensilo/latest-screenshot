@@ -12,7 +12,8 @@ import (
 )
 
 var screenshotDir = flag.String("dir", "~/Pictures/Screenshots", "screenshot directory")
-var noRename = flag.Bool("noRename", false, "do not rename screenshot files for simplicity")
+var rename = flag.Bool("rename", true, "rename screenshot files for simplicity and usability to remove spaces")
+var outputPath = flag.Bool("outputPath", true, "output the entire file paths of screenshot files")
 
 var isImgFilenameRegExp = regexp.MustCompile(`\.(?i)(png|jpg)$`)
 var imgFilenameDateRegExp = regexp.MustCompile(`\s\d{4}-\d{2}-\d{2}.*`)
@@ -77,19 +78,29 @@ func main() {
 	imgPaths := make([]string, len(imgs))
 	for i, img := range imgs {
 		name := img.Name()
-		if isImgFilenameAlreadyRenamed(name) || (*noRename) == true {
-			imgPaths[i] = name
+		pathName := filepath.Join(screenshotDir, name)
+		if isImgFilenameAlreadyRenamed(name) || !(*rename) {
+			if *outputPath {
+				imgPaths[i] = pathName
+			} else {
+				imgPaths[i] = name
+			}
 			continue
 		}
 
 		newName := strings.ReplaceAll(imgFilenameDateRegExp.FindString(name), " ", "_")
-		err := os.Rename(filepath.Join(screenshotDir, name), filepath.Join(screenshotDir, newName))
+		newPathName := filepath.Join(screenshotDir, newName)
+		err := os.Rename(pathName, newPathName)
 		if err != nil {
 			fmt.Printf("Error renaming file: %s to %s: %s", name, newName, err)
 			os.Exit(1)
 		}
 
-		imgPaths[i] = newName
+		if *outputPath {
+			imgPaths[i] = newPathName
+		} else {
+			imgPaths[i] = newName
+		}
 	}
 
 	fmt.Printf("%s\n", strings.Join(imgPaths, " "))
